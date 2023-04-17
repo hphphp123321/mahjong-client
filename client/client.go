@@ -23,15 +23,18 @@ type MahjongClient struct {
 
 	P *player.Player
 
+	ReadyDone chan error
+	StartDone chan error
+
 	RoomList []*room.Room
 	Room     *room.Room
 }
 
-func NewMahjongClient(ctx context.Context, playerName string, grpcClient pb.MahjongClient) *MahjongClient {
+func NewMahjongClient(ctx context.Context, grpcClient pb.MahjongClient) *MahjongClient {
 	return &MahjongClient{
 		Client: grpcClient,
-		P:      player.NewPlayer(playerName, uuid.Nil),
-		Ctx:    ctx,
+		//P:      player.NewPlayer(playerName, uuid.Nil),
+		Ctx: ctx,
 	}
 }
 
@@ -69,8 +72,18 @@ func (c *MahjongClient) Login() error {
 }
 
 func (c *MahjongClient) Logout() error {
+	if c.P == nil {
+		return nil
+	}
+	if c.Room != nil {
+		c.ReadyStream.Send(&pb.ReadyRequest{
+			Request: &pb.ReadyRequest_LeaveRoom{},
+		})
+	}
 	log.Printf("Start Logout: playerName: %s", c.P.PlayerName)
-	c.ReadyStream.CloseSend()
+	if c.ReadyStream != nil {
+		c.ReadyStream.CloseSend()
+	}
 	logoutReply, err := c.Client.Logout(c.Ctx, &pb.Empty{})
 	if err != nil {
 		return err
@@ -167,7 +180,7 @@ func (c *MahjongClient) Ready() error {
 			log.Printf("ReadyStream.Recv: %s", readyReply.Message)
 			switch readyReply.GetReply().(type) {
 			case *pb.ReadyReply_GetReady:
-				c.handleGetReadyReply(readyReply)
+				c.HandleGetReadyReply(readyReply)
 			}
 		}
 	}()
@@ -199,7 +212,34 @@ func (c *MahjongClient) Ready() error {
 	return nil
 }
 
-func (c *MahjongClient) handleGetReadyReply(readyReply *pb.ReadyReply) {
+func (c *MahjongClient) SendChatMsg(msg string) error {
+	log.Printf("Start SendChatMsg: playerName: %s, msg: %s", c.P.PlayerName, msg)
+	var err error
+	if c.ReadyStream != nil {
+		err = c.ReadyStream.Send(&pb.ReadyRequest{
+			Request: &pb.ReadyRequest_Chat{
+				Chat: &pb.ChatRequest{
+					Message: msg,
+				},
+			},
+		})
+	} else {
+		err = c.StartStream.Send(&pb.StartRequest{
+			Request: &pb.StartRequest_Chat{
+				Chat: &pb.ChatRequest{
+					Message: msg,
+				},
+			},
+		})
+	}
+	if err != nil {
+		return err
+	}
+	//log.Printf("SendChatMsg: %s", chatMsgReply.Message)
+	return nil
+}
+
+func (c *MahjongClient) HandleGetReadyReply(readyReply *pb.ReadyReply) {
 	if int(readyReply.GetGetReady().Seat) == c.P.Seat {
 		c.P.Ready = true
 	}
