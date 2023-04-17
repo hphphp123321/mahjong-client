@@ -45,7 +45,10 @@ var rootCmd = &cobra.Command{
 
 		tcpAddr := fmt.Sprintf("%s:%d", address, port)
 		log.Debug("Start dial tcpAddr: ", tcpAddr)
-		conn, err := grpc.Dial(tcpAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithKeepaliveParams(kacp))
+		conn, err := grpc.Dial(tcpAddr,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithKeepaliveParams(kacp),
+		)
 		//defer conn.Close()
 		if err != nil {
 			log.Fatalf("can not dial: %v", err)

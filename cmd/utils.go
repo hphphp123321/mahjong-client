@@ -8,6 +8,7 @@ import (
 	"path"
 	"runtime"
 	"strconv"
+	"time"
 )
 
 func SetupSignalHandler(c *client.MahjongClient) {
@@ -77,5 +78,18 @@ func setupLogger() {
 			log.Error("set log file error")
 		}
 	}
+}
 
+// Ping ping
+func Ping(c *client.MahjongClient) {
+	ticker := time.NewTicker(time.Duration(timeTicker) * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			err := c.Ping()
+			if err != nil {
+				log.Fatalf("Ping failed: %v", err)
+			}
+		}
+	}
 }
