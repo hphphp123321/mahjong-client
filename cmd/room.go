@@ -46,25 +46,6 @@ func roomSend(wg *sync.WaitGroup) {
 	return
 }
 
-//func getOptions() []string {
-//	var allOptions []string
-//	if Client.P.Ready {
-//		allOptions = append(allOptions, "Cancel Ready")
-//	} else {
-//		allOptions = append(allOptions, "Get Ready")
-//	}
-//	if Client.Room.Owner.PlayerName == Client.P.PlayerName {
-//		allOptions = append(allOptions, "Remove Player")
-//		allOptions = append(allOptions, "Add Robot")
-//		if Client.Room.CheckAllReady() {
-//			allOptions = append(allOptions, "Start Game")
-//		}
-//	}
-//	allOptions = append(allOptions, "Leave Room")
-//	allOptions = append(allOptions, "Chat")
-//	return allOptions
-//}
-
 func getOptions() []*survey.Question {
 	var allOptions []*survey.Question
 
