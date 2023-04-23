@@ -1,5 +1,6 @@
 package client
 
+import "C"
 import (
 	"context"
 	"github.com/hphphp123321/go-common"
@@ -8,6 +9,7 @@ import (
 	"github.com/hphphp123321/mahjong-client/app/model/player"
 	"github.com/hphphp123321/mahjong-client/app/model/room"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/metadata"
 	"time"
 )
 
@@ -27,9 +29,10 @@ type MahjongClient struct {
 	Delay time.Duration
 }
 
-func NewMahjongClient(id string) *MahjongClient {
+func NewMahjongClient(ctx context.Context, client pb.MahjongClient) *MahjongClient {
 	return &MahjongClient{
-		ID: id,
+		Ctx:    ctx,
+		Client: client,
 	}
 }
 
@@ -55,6 +58,8 @@ func (c *MahjongClient) Login(name string) error {
 	if id == "" {
 		log.Errorf("Login failed: %s", reply.GetMessage())
 	}
+	header := metadata.New(map[string]string{"id": id})
+	c.Ctx = metadata.NewOutgoingContext(c.Ctx, header)
 	c.ID = id
 	c.Player = player.NewPlayer(name)
 	return nil
@@ -65,7 +70,9 @@ func (c *MahjongClient) Logout() error {
 		return nil
 	}
 	if c.Room != nil {
-		// TODO leave room
+		if err := c.LeaveRoom(); err != nil {
+			log.Warnln(err)
+		}
 	}
 	_, err := c.Client.Logout(c.Ctx, &pb.Empty{})
 	if err != nil {
@@ -142,7 +149,6 @@ func (c *MahjongClient) GetReady() error {
 	}); err != nil {
 		return err
 	}
-	// TODO c.Player.Ready = true
 	return nil
 }
 
@@ -160,7 +166,6 @@ func (c *MahjongClient) CancelReady() error {
 	}); err != nil {
 		return err
 	}
-	// TODO c.Player.Ready = false
 	return nil
 }
 
@@ -181,9 +186,6 @@ func (c *MahjongClient) AddRobot(robotType string, robotSeat int) error {
 	}); err != nil {
 		return err
 	}
-	// TODO if err := c.Room.Join(player.NewPlayer(robotType), robotSeat); err != nil {
-	//	return err
-	//}
 	return nil
 }
 
@@ -203,9 +205,6 @@ func (c *MahjongClient) RemovePlayer(seat int) error {
 	}); err != nil {
 		return err
 	}
-	// TODO if err := c.Room.Leave(seat); err != nil {
-	//	return err
-	//}
 	return nil
 }
 
@@ -220,10 +219,6 @@ func (c *MahjongClient) LeaveRoom() error {
 	}); err != nil {
 		return err
 	}
-	// TODO if err := c.Player.LeaveRoom(); err != nil {
-	//	return err
-	//}
-	//c.Room = nil
 	return nil
 }
 
@@ -255,4 +250,12 @@ func (c *MahjongClient) ListRobots() ([]string, error) {
 		return nil, err
 	}
 	return reply.GetRobotTypes(), nil
+}
+
+func (c *MahjongClient) IsReady() bool {
+	return c.Player != nil && c.Player.Ready
+}
+
+func (c *MahjongClient) IsOwner() bool {
+	return c.Player != nil && c.Room != nil && c.Player.Seat == c.Room.OwnerSeat
 }

@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/hphphp123321/mahjong-client/client"
-	"github.com/hphphp123321/mahjong-common/osutils"
+	"github.com/hphphp123321/mahjong-client/app/component/osutils"
+	"github.com/hphphp123321/mahjong-client/app/service/client"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path"

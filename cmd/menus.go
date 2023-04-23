@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/hphphp123321/mahjong-client/app/service/client"
 	log "github.com/sirupsen/logrus"
-	"sync"
 )
 
 func logMenu() {
@@ -47,7 +47,11 @@ func lobbyMenu() {
 		if err != nil {
 			return
 		}
-
+		_, err = Client.ListRooms("")
+		if err != nil {
+			log.Errorln(err)
+			return
+		}
 		switch action {
 		case "ListRooms":
 			err := listRooms()
@@ -74,12 +78,17 @@ func lobbyMenu() {
 }
 
 func roomMenu() {
-	var wg sync.WaitGroup
-	roomRecv(&wg)
-	roomSend(&wg)
-	wg.Wait()
+	done := client.StartReadyRecvStream(Client)
 	select {
-	case <-Client.ReadyDone:
-		log.Println("Game is ready, start game...")
+	case err := <-done:
+		if err != nil {
+			log.Errorln(err)
+		} else {
+			return
+		}
+	default:
+		if err := roomSelectSend(); err != nil {
+			log.Errorln(err)
+		}
 	}
 }

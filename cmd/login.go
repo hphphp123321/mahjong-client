@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/google/uuid"
-	"github.com/hphphp123321/mahjong-common/player"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,11 +15,9 @@ func login() error {
 	}
 
 	log.Println("Logging in as %s...\n", username)
-	Client.P = player.NewPlayer(username, uuid.Nil)
-	if err := Client.Login(); err != nil {
+	if err := Client.Login(username); err != nil {
 		return err
 	}
-	SetupSignalHandler(Client)
 	go Ping(Client)
 	return nil
 }

@@ -6,8 +6,8 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/hphphp123321/mahjong-client/client"
-	pb "github.com/hphphp123321/mahjong-common/services/mahjong/v1"
+	pb "github.com/hphphp123321/mahjong-client/app/api/v1"
+	"github.com/hphphp123321/mahjong-client/app/service/client"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

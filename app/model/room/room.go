@@ -48,3 +48,59 @@ func (r *Room) Join(p *player.Player, seat int) error {
 	r.Players[seat] = p
 	return nil
 }
+
+func (r *Room) Leave(seat int) error {
+	if p, ok := r.Players[seat]; ok {
+		if err := p.LeaveRoom(); err != nil {
+			return err
+		}
+		delete(r.Players, seat)
+		return nil
+	}
+	return errs.ErrPlayerNotInRoom
+}
+
+func (r *Room) SetReady(seat int) error {
+	if p, ok := r.Players[seat]; ok {
+		p.Ready = true
+		return nil
+	}
+	return errs.ErrPlayerNotInRoom
+}
+
+func (r *Room) SetUnReady(seat int) error {
+	if p, ok := r.Players[seat]; ok {
+		p.Ready = false
+		return nil
+	}
+	return errs.ErrPlayerNotInRoom
+}
+
+func (r *Room) GetPlayerNames() map[string]int {
+	var nameMap = make(map[string]int)
+	for _, p := range r.Players {
+		nameMap[p.Name] = p.Seat
+	}
+	return nameMap
+}
+
+func (r *Room) GetIdleSeat() int {
+	for _, seat := range []int{1, 2, 3, 4} {
+		if _, ok := r.Players[seat]; !ok {
+			return seat
+		}
+	}
+	panic("room is full")
+}
+
+func (r *Room) CheckAllReady() bool {
+	if len(r.Players) < 4 {
+		return false
+	}
+	for _, p := range r.Players {
+		if !p.Ready {
+			return false
+		}
+	}
+	return true
+}

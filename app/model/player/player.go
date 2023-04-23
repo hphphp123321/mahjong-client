@@ -15,6 +15,13 @@ func NewPlayer(name string) *Player {
 	}
 }
 
+func NewRobot(robotType string) *Player {
+	return &Player{
+		Name:  robotType,
+		Ready: true,
+	}
+}
+
 func NewPlayerByInfo(info *Info) *Player {
 	return &Player{
 		Name:  info.Name,

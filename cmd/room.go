@@ -3,96 +3,65 @@ package cmd
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	pb "github.com/hphphp123321/mahjong-common/services/mahjong/v1"
-	log "github.com/sirupsen/logrus"
-	"io"
-	"sync"
 )
-
-func roomRecv(wg *sync.WaitGroup) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for {
-			readyReply, err := Client.ReadyStream.Recv()
-			if err == io.EOF {
-				Client.ReadyDone <- nil
-				return
-			} else if err != nil {
-				Client.ReadyDone <- err
-				return
-			}
-			log.Printf("ReadyStream.Recv: %s", readyReply.Message)
-			switch readyReply.GetReply().(type) {
-			case *pb.ReadyReply_GetReady:
-				Client.HandleGetReadyReply(readyReply)
-			}
-		}
-	}()
-	return
-}
-
-func roomSend(wg *sync.WaitGroup) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer Client.ReadyStream.CloseSend()
-		err := selectSend()
-		if err != nil {
-			Client.ReadyDone <- err
-			return
-		}
-	}()
-	return
-}
 
 func getOptions() []*survey.Question {
 	var allOptions []*survey.Question
 
-	readyOption := &survey.Question{
-		Name:   "ready",
-		Prompt: &survey.Confirm{Message: "Ready?"},
-		Validate: func(val interface{}) error {
-			answer := val.(bool)
-			if answer {
-				Client.P.Ready = true
-			} else {
-				Client.P.Ready = false
-			}
-			return nil
+	allOptions = append(allOptions, &survey.Question{
+		Name: "chat",
+		Prompt: &survey.Input{
+			Message: "Enter message:",
 		},
-	}
+		Validate: func(val interface{}) error {
+			message := val.(string)
+			return Client.ReadyChat(message)
+		},
+	})
 
-	if Client.P.Ready {
+	if !Client.IsReady() {
+		allOptions = append(allOptions, &survey.Question{
+			Name:   "getReady",
+			Prompt: &survey.Confirm{Message: "Ready?"},
+			Validate: func(val interface{}) error {
+				answer := val.(bool)
+				if answer {
+					return Client.GetReady()
+				}
+				return nil
+			},
+		})
+	} else {
 		allOptions = append(allOptions, &survey.Question{
 			Name:   "cancelReady",
 			Prompt: &survey.Confirm{Message: "Cancel Ready?"},
 			Validate: func(val interface{}) error {
 				answer := val.(bool)
 				if answer {
-					Client.P.Ready = false
+					return Client.CancelReady()
 				}
 				return nil
 			},
 		})
-	} else {
-		allOptions = append(allOptions, readyOption)
 	}
-	if Client.Room.Owner.PlayerName == Client.P.PlayerName {
+	if Client.IsOwner() {
+		nameMap := Client.Room.GetPlayerNames()
+		names := make([]string, 0)
+		for name, _ := range nameMap {
+			names = append(names, name)
+		}
 		allOptions = append(allOptions, &survey.Question{
 			Name: "removePlayer",
 			Prompt: &survey.Select{
 				Message: "Select player to remove:",
-				Options: Client.Room.GetPlayerNames(),
+				Options: names,
 			},
 			Validate: func(val interface{}) error {
 				playerName := val.(string)
-				if playerName == Client.P.PlayerName {
-					return fmt.Errorf("You cannot remove yourself from the room")
+				if playerName == Client.Player.Name {
+					return fmt.Errorf("you cannot remove yourself from the room")
 				}
-				// TODO Remove Player
-				//Client.Room.RemovePlayer(playerName)
-				return nil
+				return Client.RemovePlayer(nameMap[playerName])
 			},
 		})
 		allOptions = append(allOptions, &survey.Question{
@@ -101,10 +70,8 @@ func getOptions() []*survey.Question {
 				Message: "Enter robot name:",
 			},
 			Validate: func(val interface{}) error {
-				//robotName := val.(string)
-				// TODO Add Robot
-				//Client.Room.AddRobot(robotName)
-				return nil
+				robotType := val.(string)
+				return Client.AddRobot(robotType, Client.Room.GetIdleSeat())
 			},
 		})
 		if Client.Room.CheckAllReady() {
@@ -122,6 +89,27 @@ func getOptions() []*survey.Question {
 		}
 	}
 	allOptions = append(allOptions, &survey.Question{
+		Name: "listRobots",
+		Prompt: &survey.Confirm{
+			Message: "Are you sure you want to list robots?",
+			Default: true,
+		},
+		Validate: func(val interface{}) error {
+			answer := val.(bool)
+			if answer {
+				robots, err := Client.ListRobots()
+				if err != nil {
+					return err
+				}
+				for _, robot := range robots {
+					fmt.Println(robot)
+				}
+			}
+			return nil
+		},
+	})
+
+	allOptions = append(allOptions, &survey.Question{
 		Name: "leaveRoom",
 		Prompt: &survey.Confirm{
 			Message: "Are you sure you want to leave the room?",
@@ -130,28 +118,16 @@ func getOptions() []*survey.Question {
 		Validate: func(val interface{}) error {
 			answer := val.(bool)
 			if answer {
-				// TODO Leave Room
-				//Client.LeaveRoom()
+				return Client.LeaveRoom()
 			}
 			return nil
-		},
-	})
-	allOptions = append(allOptions, &survey.Question{
-		Name: "chat",
-		Prompt: &survey.Input{
-			Message: "Enter message:",
-		},
-		Validate: func(val interface{}) error {
-			message := val.(string)
-			// TODO Chat
-			return Client.SendChatMsg(message)
 		},
 	})
 
 	return allOptions
 }
 
-func selectSend() error {
+func roomSelectSend() error {
 	for {
 		options := getOptions()
 

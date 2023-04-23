@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,37 +14,35 @@ func listRooms() error {
 	if err := survey.AskOne(roomNamePrompt, &roomName); err != nil {
 		return err
 	}
-	if err := Client.RefreshRoom(roomName); err != nil {
+	roomInfos, err := Client.ListRooms(roomName)
+	if err != nil {
 		return err
 	}
-	for _, room := range Client.RoomList {
-		fmt.Println(room.RoomName)
+	for id, name := range roomInfos {
+		log.Infoln("Room ID:", id, "Name: ", name)
 	}
 	return nil
 }
 
 func joinRoom() error {
 	var options = make([]string, 0)
-	for _, room := range Client.RoomList {
-		options = append(options, room.RoomName)
+	for _, roomInfo := range Client.RoomInfos {
+		options = append(options, roomInfo.Name)
 	}
 	if len(options) == 0 {
 		return errors.New("no room found")
 	}
+	var optionIdx int
 	roomNumberPrompt := &survey.Select{
 		Message: "Enter the room name:",
 		Options: options,
 	}
-	var roomName string
-	if err := survey.AskOne(roomNumberPrompt, &roomName); err != nil {
+
+	if err := survey.AskOne(roomNumberPrompt, &optionIdx); err != nil {
 		return err
 	}
-	for _, room := range Client.RoomList {
-		if room.RoomName == roomName {
-			return Client.JoinRoom(room.RoomID.String())
-		}
-	}
-	return errors.New("room not found")
+	roomId := Client.RoomInfos[optionIdx].ID
+	return Client.JoinRoom(roomId)
 }
 
 func createRoom() error {
