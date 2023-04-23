@@ -171,8 +171,21 @@ func selectSend() error {
 
 		selectedOption := options[optionIndex]
 		var answer interface{}
+		switch selectedOption.Prompt.(type) {
+		case *survey.Input:
+			var inputAnswer string
+			answer = &inputAnswer
+		case *survey.Select:
+			var selectAnswer string
+			answer = &selectAnswer
+		case *survey.Confirm:
+			var confirmAnswer bool
+			answer = &confirmAnswer
+		default:
+			return fmt.Errorf("Unsupported prompt type")
+		}
 
-		if err := survey.Ask([]*survey.Question{selectedOption}, &answer); err != nil {
+		if err := survey.Ask([]*survey.Question{selectedOption}, answer); err != nil {
 			return err
 		}
 	}
