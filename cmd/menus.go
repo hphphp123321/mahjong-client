@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/hphphp123321/mahjong-client/app/service/client"
@@ -81,19 +82,19 @@ func lobbyMenu() {
 
 func roomMenu() {
 	done := client.StartReadyRecvStream(Client)
+	ctx, cancel := context.WithCancel(context.Background())
 	go RefreshRoom(Client)
+	go func() {
+		<-done
+		cancel()
+	}()
 	for {
-		select {
-		case err := <-done:
-			if err != nil {
-				log.Errorln(err)
-			} else {
-				return
-			}
-		default:
-			if err := roomSelectSend(); err != nil {
-				log.Errorln(err)
-			}
+		err := roomSelectSend(ctx)
+		if err == context.Canceled {
+			return
+		}
+		if err != nil {
+			log.Errorln(err)
 		}
 	}
 }

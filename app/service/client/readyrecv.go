@@ -20,7 +20,7 @@ func StartReadyRecvStream(c *MahjongClient) chan error {
 			if err != nil {
 				log.Errorln("ready stream recv error:", err)
 				done <- err
-				return
+				break
 			}
 			if reply.GetMessage() != "" {
 				log.Debugf("recv ready reply: %s", reply.GetMessage())

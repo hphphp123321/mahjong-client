@@ -128,3 +128,7 @@ func (r *Room) CheckAllReady() bool {
 	}
 	return true
 }
+
+func (r *Room) IsFull() bool {
+	return len(r.Players) == 4
+}

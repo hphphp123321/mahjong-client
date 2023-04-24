@@ -4,6 +4,7 @@ import (
 	"github.com/hphphp123321/mahjong-client/app/component/osutils"
 	"github.com/hphphp123321/mahjong-client/app/service/client"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"path"
 	"runtime"
@@ -103,6 +104,9 @@ func RefreshRoom(c *client.MahjongClient) {
 				return
 			}
 			err := c.RefreshRoom()
+			if err == io.EOF {
+				return
+			}
 			if err != nil {
 				log.Fatalf("RefreshRoom failed: %v", err)
 			}
