@@ -13,6 +13,7 @@ func StartReadyRecvStream(c *MahjongClient) chan error {
 		for {
 			reply, err := c.ReadyStream.Recv()
 			if err == io.EOF {
+				log.Debugln("ready stream recv EOF")
 				done <- nil
 				return
 			}
@@ -21,8 +22,14 @@ func StartReadyRecvStream(c *MahjongClient) chan error {
 				done <- err
 				return
 			}
-			log.Debugf("recv ready reply: %s", reply.GetMessage())
+			if reply.GetMessage() != "" {
+				log.Debugf("recv ready reply: %s", reply.GetMessage())
+			}
 			switch reply.GetReply().(type) {
+			case *pb.ReadyReply_RefreshRoomReply:
+				if err := handleRefreshRoomReply(c, reply); err != nil {
+					log.Errorln("handle refresh room reply error:", err)
+				}
 			case *pb.ReadyReply_GetReady:
 				if err := handleGetReadyReply(c, reply); err != nil {
 					log.Errorln("handle get ready reply error:", err)
@@ -58,6 +65,11 @@ func StartReadyRecvStream(c *MahjongClient) chan error {
 	return done
 }
 
+func handleRefreshRoomReply(c *MahjongClient, reply *pb.ReadyReply) error {
+	roomInfo := ToRoomInfo(reply.GetRefreshRoomReply())
+	return c.Room.Refresh(roomInfo)
+}
+
 func handleGetReadyReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	seat := reply.GetGetReady().GetSeat()
 	return c.Room.SetReady(int(seat))
@@ -80,6 +92,7 @@ func handlePlayerJoinReply(c *MahjongClient, reply *pb.ReadyReply) error {
 func handlePlayerLeaveReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	seat := reply.GetPlayerLeave().GetSeat()
 	name := reply.GetPlayerLeave().GetPlayerName()
+	ownerSeat := reply.GetPlayerLeave().GetOwnerSeat()
 	if name == c.Player.Name && int(seat) == c.Player.Seat {
 		if err := c.ReadyStream.CloseSend(); err != nil {
 			log.Warnf("close ready stream error: %s", err)
@@ -90,6 +103,7 @@ func handlePlayerLeaveReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	if err := c.Room.Leave(int(seat)); err != nil {
 		return err
 	}
+	c.Room.OwnerSeat = int(ownerSeat)
 	return nil
 }
 

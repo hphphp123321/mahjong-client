@@ -94,8 +94,8 @@ func init() {
 	// when this action is called directly.
 	rootCmd.PersistentFlags().StringVar(&address, "address", "127.0.0.1", "server address")
 	rootCmd.PersistentFlags().IntVar(&port, "port", 16548, "server port")
-	rootCmd.PersistentFlags().IntVar(&timeout, "timeout", 5, "seconds for timeout")
-	rootCmd.PersistentFlags().IntVar(&timeTicker, "timeTicker", 10, "seconds for time ticker")
+	rootCmd.PersistentFlags().IntVar(&timeout, "timeout", 600, "seconds for timeout")
+	rootCmd.PersistentFlags().IntVar(&timeTicker, "timeTicker", 5, "seconds for time ticker")
 	rootCmd.PersistentFlags().StringVar(&logFormat, "logFormat", "text", "log format(json or text)")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "logLevel", "debug", "log level(debug, info, warn, error, fatal, panic)")
 	rootCmd.PersistentFlags().StringVar(&logOutput, "logOutput", "stdout", "log output(stdout or stderr)")

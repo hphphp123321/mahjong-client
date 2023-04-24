@@ -93,3 +93,19 @@ func Ping(c *client.MahjongClient) {
 		}
 	}
 }
+
+func RefreshRoom(c *client.MahjongClient) {
+	ticker := time.NewTicker(time.Duration(timeTicker) * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			if c.ReadyStream == nil {
+				return
+			}
+			err := c.RefreshRoom()
+			if err != nil {
+				log.Fatalf("RefreshRoom failed: %v", err)
+			}
+		}
+	}
+}

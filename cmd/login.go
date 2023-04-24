@@ -19,6 +19,7 @@ func login() error {
 		return err
 	}
 	go Ping(Client)
+	SetupSignalHandler(Client)
 	return nil
 }
 

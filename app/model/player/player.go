@@ -47,3 +47,15 @@ func (p *Player) LeaveRoom() error {
 	p.Seat = 0
 	return nil
 }
+
+func (p *Player) Refresh(info *Info) error {
+	if p.Name != info.Name {
+		return errs.ErrPlayerNameNotMatch
+	}
+	if p.Seat != info.Seat {
+		return errs.ErrPlayerSeatNotMatch
+	}
+	p.Ready = info.Ready
+	return nil
+
+}

@@ -69,6 +69,9 @@ func (c *MahjongClient) Logout() error {
 	if c.ID == "" {
 		return nil
 	}
+	if c.Client == nil {
+		return nil
+	}
 	if c.Room != nil {
 		if err := c.LeaveRoom(); err != nil {
 			log.Warnln(err)
@@ -124,7 +127,7 @@ func (c *MahjongClient) JoinRoom(id string) error {
 	}
 	roomInfo := ToRoomInfo(reply.GetRoom())
 	c.Room = room.NewRoomFromInfo(roomInfo)
-	if err := c.Player.JoinRoom(c.Room.ID, c.Room.OwnerSeat); err != nil {
+	if err := c.Player.JoinRoom(c.Room.ID, int(reply.Seat)); err != nil {
 		return err
 	}
 	c.ReadyStream, err = c.Client.Ready(c.Ctx)
@@ -250,6 +253,21 @@ func (c *MahjongClient) ListRobots() ([]string, error) {
 		return nil, err
 	}
 	return reply.GetRobotTypes(), nil
+}
+
+func (c *MahjongClient) RefreshRoom() error {
+	if c.Room == nil {
+		return errs.ErrRoomNotFound
+	}
+	if c.Room == nil {
+		return nil
+	}
+	err := c.ReadyStream.Send(&pb.ReadyRequest{
+		Request: &pb.ReadyRequest_RefreshRoom{
+			RefreshRoom: &pb.Empty{},
+		},
+	})
+	return err
 }
 
 func (c *MahjongClient) IsReady() bool {

@@ -62,12 +62,14 @@ func lobbyMenu() {
 			err := joinRoom()
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 			roomMenu()
 		case "CreateRoom":
 			err := createRoom()
 			if err != nil {
 				fmt.Println(err)
+				continue
 			}
 			roomMenu()
 		case "Logout":
@@ -79,16 +81,19 @@ func lobbyMenu() {
 
 func roomMenu() {
 	done := client.StartReadyRecvStream(Client)
-	select {
-	case err := <-done:
-		if err != nil {
-			log.Errorln(err)
-		} else {
-			return
-		}
-	default:
-		if err := roomSelectSend(); err != nil {
-			log.Errorln(err)
+	go RefreshRoom(Client)
+	for {
+		select {
+		case err := <-done:
+			if err != nil {
+				log.Errorln(err)
+			} else {
+				return
+			}
+		default:
+			if err := roomSelectSend(); err != nil {
+				log.Errorln(err)
+			}
 		}
 	}
 }

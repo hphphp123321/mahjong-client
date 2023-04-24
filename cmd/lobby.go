@@ -62,6 +62,5 @@ func logout() {
 	if err := Client.Logout(); err != nil {
 		log.Fatal(err)
 	}
-	Client = nil
 	// 在此处添加注销逻辑
 }

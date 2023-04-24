@@ -28,7 +28,9 @@ func NewRoom(p *player.Player, name string, id string) (*Room, error) {
 func NewRoomFromInfo(roomInfo *Info) *Room {
 	players := map[int]*player.Player{}
 	for _, info := range roomInfo.PlayerInfos {
-		players[info.Seat] = player.NewPlayerByInfo(info)
+		p := player.NewPlayerByInfo(info)
+		p.RoomID = roomInfo.ID
+		players[info.Seat] = p
 	}
 	return &Room{
 		ID:        roomInfo.ID,
@@ -36,6 +38,28 @@ func NewRoomFromInfo(roomInfo *Info) *Room {
 		Players:   players,
 		OwnerSeat: roomInfo.OwnerSeat,
 	}
+}
+
+func (r *Room) Refresh(info *Info) error {
+	if r.ID != info.ID {
+		return errs.ErrRoomIDNotMatch
+	}
+	if r.Name != info.Name {
+		return errs.ErrRoomNameNotMatch
+	}
+	if r.OwnerSeat != info.OwnerSeat {
+		return errs.ErrRoomOwnerSeatNotMatch
+	}
+	for _, info := range info.PlayerInfos {
+		if p, ok := r.Players[info.Seat]; ok {
+			if err := p.Refresh(info); err != nil {
+				return err
+			}
+		} else {
+			return errs.ErrPlayerNotInRoom
+		}
+	}
+	return nil
 }
 
 func (r *Room) Join(p *player.Player, seat int) error {
