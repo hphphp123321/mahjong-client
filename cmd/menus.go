@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/hphphp123321/mahjong-client/app/service/client"
 	log "github.com/sirupsen/logrus"
+	"io"
+	"sync"
 )
 
 func logMenu() {
@@ -81,20 +82,17 @@ func lobbyMenu() {
 }
 
 func roomMenu() {
-	done := client.StartReadyRecvStream(Client)
-	ctx, cancel := context.WithCancel(context.Background())
+	wg := sync.WaitGroup{}
+	done := client.StartReadyRecvStream(Client, &wg)
 	go RefreshRoom(Client)
-	go func() {
-		<-done
-		cancel()
-	}()
 	for {
-		err := roomSelectSend(ctx)
-		if err == context.Canceled {
-			return
+		err := roomSelectSend(done, &wg)
+		if err == io.EOF {
+			break
 		}
 		if err != nil {
 			log.Errorln(err)
 		}
 	}
+	Client.ReadyStream = nil
 }

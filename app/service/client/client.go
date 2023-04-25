@@ -77,19 +77,20 @@ func (c *MahjongClient) Logout() error {
 			log.Warnln(err)
 		}
 	}
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond * 100)
 	if c.ReadyStream != nil {
 		if err := c.ReadyStream.CloseSend(); err != nil {
 			log.Warnln(err)
 		}
 		c.ReadyStream = nil
 	}
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond * 100)
 	_, err := c.Client.Logout(c.Ctx, &pb.Empty{})
 	if err != nil {
 		return err
 	}
 	c.ID = ""
+	c.Player = nil
 	return nil
 }
 
@@ -131,6 +132,15 @@ func (c *MahjongClient) CreateRoom(name string) error {
 }
 
 func (c *MahjongClient) JoinRoom(id string) error {
+	if c.Player == nil {
+		return errs.ErrPlayerNotFound
+	}
+	if c.Player.RoomID != "" {
+		return errs.ErrPlayerAlreadyInRoom
+	}
+	if c.Room != nil {
+		return errs.ErrPlayerAlreadyInRoom
+	}
 	reply, err := c.Client.JoinRoom(c.Ctx, &pb.JoinRoomRequest{
 		RoomID: id,
 	})
@@ -228,12 +238,14 @@ func (c *MahjongClient) LeaveRoom() error {
 	if c.Room == nil {
 		return errs.ErrRoomNotFound
 	}
-	if err := c.ReadyStream.Send(&pb.ReadyRequest{
-		Request: &pb.ReadyRequest_LeaveRoom{
-			LeaveRoom: &pb.Empty{},
-		},
-	}); err != nil {
-		return err
+	if c.ReadyStream != nil {
+		if err := c.ReadyStream.Send(&pb.ReadyRequest{
+			Request: &pb.ReadyRequest_LeaveRoom{
+				LeaveRoom: &pb.Empty{},
+			},
+		}); err != nil {
+			return err
+		}
 	}
 	return nil
 }

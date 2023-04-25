@@ -108,7 +108,7 @@ func RefreshRoom(c *client.MahjongClient) {
 				return
 			}
 			if err != nil {
-				log.Fatalf("RefreshRoom failed: %v", err)
+				log.Warnln("RefreshRoom failed: %v", err)
 			}
 		}
 	}

@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"context"
 	"github.com/AlecAivazis/survey/v2"
+	"sync"
 	"time"
 )
 
@@ -37,7 +37,7 @@ func getOptions() []string {
 	return allOptions
 }
 
-func chat() error {
+func chat(wg *sync.WaitGroup) error {
 	var message string
 	prompt := &survey.Input{
 		Message: "Enter your message:",
@@ -51,7 +51,7 @@ func chat() error {
 	return nil
 }
 
-func getReady() error {
+func getReady(wg *sync.WaitGroup) error {
 	var confirm bool
 	prompt := &survey.Confirm{
 		Message: "Are you sure to get ready?",
@@ -63,11 +63,13 @@ func getReady() error {
 		if err := Client.GetReady(); err != nil {
 			return err
 		}
+	} else {
+		wg.Done()
 	}
 	return nil
 }
 
-func cancelReady() error {
+func cancelReady(wg *sync.WaitGroup) error {
 	var confirm bool
 	prompt := &survey.Confirm{
 		Message: "Are you sure to cancel ready?",
@@ -79,11 +81,13 @@ func cancelReady() error {
 		if err := Client.CancelReady(); err != nil {
 			return err
 		}
+	} else {
+		wg.Done()
 	}
 	return nil
 }
 
-func removePlayer() error {
+func removePlayer(wg *sync.WaitGroup) error {
 	var options = make([]string, 0)
 	names := Client.Room.GetPlayerNames()
 	for name, seat := range names {
@@ -103,12 +107,14 @@ func removePlayer() error {
 		return err
 	}
 	if optionName == "cancel" {
+		wg.Done()
 		return nil
 	}
+	wg.Done()
 	return Client.RemovePlayer(names[optionName])
 }
 
-func addRobot() error {
+func addRobot(wg *sync.WaitGroup) error {
 	robots, err := Client.ListRobots()
 	if err != nil {
 		return err
@@ -127,13 +133,14 @@ func addRobot() error {
 		return err
 	}
 	if optionName == "cancel" {
+		wg.Done()
 		return nil
 	}
 	seat := Client.Room.GetIdleSeat()
 	return Client.AddRobot(optionName, seat)
 }
 
-func startGame() error {
+func startGame(wg *sync.WaitGroup) error {
 	var confirm bool
 	prompt := &survey.Confirm{
 		Message: "Are you sure to start game?",
@@ -146,11 +153,13 @@ func startGame() error {
 		//if err := Client.StartGame(); err != nil {
 		//	return err
 		//}
+	} else {
+		wg.Done()
 	}
 	return nil
 }
 
-func leaveRoom() error {
+func leaveRoom(wg *sync.WaitGroup) error {
 	var confirm bool
 	prompt := &survey.Confirm{
 		Message: "Are you sure to leave room?",
@@ -162,11 +171,15 @@ func leaveRoom() error {
 		if err := Client.LeaveRoom(); err != nil {
 			return err
 		}
+	} else {
+		wg.Done()
 	}
 	return nil
 }
 
-func roomSelectSend(ctx context.Context) error {
+func roomSelectSend(done chan error, wg *sync.WaitGroup) error {
+	wg.Wait()
+
 	options := getOptions()
 
 	var optionName string
@@ -176,46 +189,43 @@ func roomSelectSend(ctx context.Context) error {
 	}
 
 	select {
-	case <-ctx.Done():
-		return context.Canceled
+	case err := <-done:
+		return err
 	case <-time.After(Client.Delay*10 + time.Millisecond*100):
-		// 检查上下文是否已被取消
-		if ctx.Err() != nil {
-			return context.Canceled
-		}
 	}
 
 	if err := survey.AskOne(optionSelect, &optionName); err != nil {
 		return err
 	}
 
+	wg.Add(1)
 	switch optionName {
 	case chatOption:
-		if err := chat(); err != nil {
+		if err := chat(wg); err != nil {
 			return err
 		}
 	case getReadyOption:
-		if err := getReady(); err != nil {
+		if err := getReady(wg); err != nil {
 			return err
 		}
 	case cancelReadyOption:
-		if err := cancelReady(); err != nil {
+		if err := cancelReady(wg); err != nil {
 			return err
 		}
 	case removePlayerOption:
-		if err := removePlayer(); err != nil {
+		if err := removePlayer(wg); err != nil {
 			return err
 		}
 	case addRobotOption:
-		if err := addRobot(); err != nil {
+		if err := addRobot(wg); err != nil {
 			return err
 		}
 	case startGameOption:
-		if err := startGame(); err != nil {
+		if err := startGame(wg); err != nil {
 			return err
 		}
 	case leaveRoomOption:
-		if err := leaveRoom(); err != nil {
+		if err := leaveRoom(wg); err != nil {
 			return err
 		}
 	}
