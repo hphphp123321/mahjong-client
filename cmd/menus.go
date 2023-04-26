@@ -82,6 +82,17 @@ func lobbyMenu() {
 }
 
 func roomMenu() {
+	readyStream, err := Client.Client.Ready(Client.Ctx)
+	if err != nil {
+		log.Warnln("start ready stream error:", err)
+		Client.Room = nil
+		if err := Client.Player.LeaveRoom(); err != nil {
+			log.Warnln("leave room error:", err)
+		}
+		return
+	}
+	Client.ReadyStream = readyStream
+	log.Debugln("start stream send")
 	wg := sync.WaitGroup{}
 	done := client.StartReadyRecvStream(Client, &wg)
 	go RefreshRoom(Client)

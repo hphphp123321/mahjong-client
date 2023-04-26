@@ -123,11 +123,6 @@ func (c *MahjongClient) CreateRoom(name string) error {
 		return err
 	}
 	c.Room.Players[c.Player.Seat] = c.Player
-	c.ReadyStream, err = c.Client.Ready(c.Ctx)
-	if err != nil {
-		return err
-	}
-	log.Debugln("start stream send")
 	return nil
 }
 
@@ -153,11 +148,6 @@ func (c *MahjongClient) JoinRoom(id string) error {
 		return err
 	}
 	c.Room.Players[int(reply.Seat)] = c.Player
-	c.ReadyStream, err = c.Client.Ready(c.Ctx)
-	if err != nil {
-		return err
-	}
-	log.Debugln("start stream send")
 	return nil
 }
 
