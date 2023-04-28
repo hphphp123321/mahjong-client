@@ -2,6 +2,7 @@ package client
 
 import (
 	pb "github.com/hphphp123321/mahjong-client/app/api/v1"
+	"github.com/hphphp123321/mahjong-client/app/errs"
 	"github.com/hphphp123321/mahjong-client/app/model/player"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -55,6 +56,7 @@ func StartReadyRecvStream(c *MahjongClient, wg *sync.WaitGroup) chan error {
 				if err := handleStartGameReply(c, reply, wg); err != nil {
 					log.Errorln("handle start game reply error:", err)
 				}
+				done <- errs.ErrGameStart
 				return // start game
 			case *pb.ReadyReply_Chat:
 				if err := handleChatReply(c, reply, wg); err != nil {
@@ -158,5 +160,14 @@ func handleStartGameReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitG
 	if err := c.ReadyStream.CloseSend(); err != nil {
 		log.Warnf("close ready stream error: %s", err)
 	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Warnf("recover from panic: %s", err)
+			return
+		}
+	}()
+	wg.Done()
+	seatsOrder := reply.GetStartGame().GetSeatsOrder()
+	log.Infof("game start! order: %s, %s, %s, %s", c.Room.Players[int(seatsOrder[0])].Name, c.Room.Players[int(seatsOrder[1])].Name, c.Room.Players[int(seatsOrder[2])].Name, c.Room.Players[int(seatsOrder[3])].Name)
 	return nil
 }

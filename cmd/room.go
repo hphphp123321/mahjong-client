@@ -149,10 +149,9 @@ func startGame(wg *sync.WaitGroup) error {
 		return err
 	}
 	if confirm {
-		// TODO: start game
-		//if err := Client.StartGame(); err != nil {
-		//	return err
-		//}
+		if err := Client.StartGame(); err != nil {
+			return err
+		}
 	} else {
 		wg.Done()
 	}

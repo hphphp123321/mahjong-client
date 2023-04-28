@@ -8,8 +8,10 @@ import (
 	"github.com/hphphp123321/mahjong-client/app/errs"
 	"github.com/hphphp123321/mahjong-client/app/model/player"
 	"github.com/hphphp123321/mahjong-client/app/model/room"
+	"github.com/hphphp123321/mahjong-go/mahjong"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
+	"math/rand"
 	"time"
 )
 
@@ -25,6 +27,8 @@ type MahjongClient struct {
 
 	Room      *room.Room
 	RoomInfos []*room.Info
+
+	BoardState *mahjong.BoardState
 
 	Delay time.Duration
 }
@@ -280,6 +284,48 @@ func (c *MahjongClient) RefreshRoom() error {
 		},
 	})
 	return err
+}
+
+func (c *MahjongClient) StartGame() error {
+	if c.Room == nil {
+		return errs.ErrRoomNotFound
+	}
+	if c.Room.OwnerSeat != c.Player.Seat {
+		return errs.ErrPlayerNotOwner
+	}
+	if err := c.ReadyStream.Send(&pb.ReadyRequest{
+		Request: &pb.ReadyRequest_StartGame{
+			StartGame: &pb.StartGameRequest{
+				GameRule: ToPbGameRule(mahjong.GetDefaultRule()),
+				Seed:     rand.Int63(),
+			},
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *MahjongClient) RefreshGame() error {
+	if c.Room == nil || c.GameStream == nil {
+		return nil
+	}
+	return c.GameStream.Send(&pb.GameRequest{
+		Request: &pb.GameRequest_RefreshGame{
+			RefreshGame: &pb.Empty{},
+		},
+	})
+}
+
+func (c *MahjongClient) SendAction(action *mahjong.Call) error {
+	if c.Room == nil || c.GameStream == nil {
+		return nil
+	}
+	return c.GameStream.Send(&pb.GameRequest{
+		Request: &pb.GameRequest_Action{
+			Action: ToPbCall(action),
+		},
+	})
 }
 
 func (c *MahjongClient) IsReady() bool {

@@ -113,3 +113,22 @@ func RefreshRoom(c *client.MahjongClient) {
 		}
 	}
 }
+
+func RefreshGame(c *client.MahjongClient) {
+	ticker := time.NewTicker(time.Duration(timeTicker) * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			if c.ReadyStream == nil {
+				return
+			}
+			err := c.RefreshGame()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.Warnln("RefreshGame failed: %v", err)
+			}
+		}
+	}
+}

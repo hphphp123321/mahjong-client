@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/hphphp123321/mahjong-client/app/errs"
 	"github.com/hphphp123321/mahjong-client/app/service/client"
+	"github.com/hphphp123321/mahjong-go/mahjong"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"sync"
@@ -106,4 +108,29 @@ func roomMenu() {
 		}
 	}
 	Client.ReadyStream = nil
+	if err == errs.ErrGameStart {
+		gameMenu()
+	}
+}
+
+func gameMenu() {
+	gameStream, err := Client.Client.Game(Client.Ctx)
+	if err != nil {
+		log.Warnln("start game stream error:", err)
+		return
+	}
+	Client.GameStream = gameStream
+	log.Debugln("start stream recv")
+	actionChan := make(chan mahjong.Calls)
+	done := client.StartGameRecvStream(Client, actionChan)
+	go RefreshGame(Client)
+	for {
+		err := gameSelectSend(done, actionChan)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Errorln(err)
+		}
+	}
 }

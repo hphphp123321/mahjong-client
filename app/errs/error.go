@@ -22,4 +22,7 @@ var (
 	ErrRoomOwnerSeatNotMatch = errors.New("room owner seat not match")
 	ErrPlayerNameNotMatch    = errors.New("player name not match")
 	ErrPlayerSeatNotMatch    = errors.New("player seat not match")
+	ErrGameStart             = errors.New("game start")
+	ErrEventsEmpty           = errors.New("events empty")
+	ErrGameEnd               = errors.New("game end")
 )
