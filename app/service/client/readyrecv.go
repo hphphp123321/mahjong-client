@@ -4,6 +4,7 @@ import (
 	pb "github.com/hphphp123321/mahjong-client/app/api/v1"
 	"github.com/hphphp123321/mahjong-client/app/errs"
 	"github.com/hphphp123321/mahjong-client/app/model/player"
+	"github.com/hphphp123321/mahjong-go/mahjong"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"sync"
@@ -169,5 +170,6 @@ func handleStartGameReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitG
 	wg.Done()
 	seatsOrder := reply.GetStartGame().GetSeatsOrder()
 	log.Infof("game start! order: %s, %s, %s, %s", c.Room.Players[int(seatsOrder[0])].Name, c.Room.Players[int(seatsOrder[1])].Name, c.Room.Players[int(seatsOrder[2])].Name, c.Room.Players[int(seatsOrder[3])].Name)
+	c.BoardState = mahjong.NewBoardState()
 	return nil
 }

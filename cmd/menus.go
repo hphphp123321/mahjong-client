@@ -84,32 +84,34 @@ func lobbyMenu() {
 }
 
 func roomMenu() {
-	readyStream, err := Client.Client.Ready(Client.Ctx)
-	if err != nil {
-		log.Warnln("start ready stream error:", err)
-		Client.Room = nil
-		if err := Client.Player.LeaveRoom(); err != nil {
-			log.Warnln("leave room error:", err)
-		}
-		return
-	}
-	Client.ReadyStream = readyStream
-	log.Debugln("start stream send")
-	wg := sync.WaitGroup{}
-	done := client.StartReadyRecvStream(Client, &wg)
-	go RefreshRoom(Client)
 	for {
-		err := roomSelectSend(done, &wg)
-		if err == io.EOF {
-			break
-		}
+		readyStream, err := Client.Client.Ready(Client.Ctx)
 		if err != nil {
-			log.Errorln(err)
+			log.Warnln("start ready stream error:", err)
+			Client.Room = nil
+			if err := Client.Player.LeaveRoom(); err != nil {
+				log.Warnln("leave room error:", err)
+			}
+			return
 		}
-	}
-	Client.ReadyStream = nil
-	if err == errs.ErrGameStart {
-		gameMenu()
+		Client.ReadyStream = readyStream
+		log.Debugln("start stream send")
+		wg := sync.WaitGroup{}
+		done := client.StartReadyRecvStream(Client, &wg)
+		go RefreshRoom(Client)
+		for {
+			err = roomSelectSend(done, &wg)
+			if err == io.EOF || err == errs.ErrGameStart {
+				break
+			}
+			if err != nil {
+				log.Errorln(err)
+			}
+		}
+		Client.ReadyStream = nil
+		if err == errs.ErrGameStart {
+			gameMenu()
+		}
 	}
 }
 
@@ -133,4 +135,5 @@ func gameMenu() {
 			log.Errorln(err)
 		}
 	}
+	Client.GameStream = nil
 }
