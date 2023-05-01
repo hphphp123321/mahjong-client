@@ -7,10 +7,9 @@ import (
 	"github.com/hphphp123321/mahjong-go/mahjong"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"sync"
 )
 
-func StartReadyRecvStream(c *MahjongClient, wg *sync.WaitGroup) chan error {
+func StartReadyRecvStream(c *MahjongClient) chan error {
 	done := make(chan error)
 	go func() {
 		for {
@@ -30,37 +29,37 @@ func StartReadyRecvStream(c *MahjongClient, wg *sync.WaitGroup) chan error {
 			}
 			switch reply.GetReply().(type) {
 			case *pb.ReadyReply_RefreshRoomReply:
-				if err := handleRefreshRoomReply(c, reply, wg); err != nil {
+				if err := handleRefreshRoomReply(c, reply); err != nil {
 					log.Errorln("handle refresh room reply error:", err)
 				}
 			case *pb.ReadyReply_GetReady:
-				if err := handleGetReadyReply(c, reply, wg); err != nil {
+				if err := handleGetReadyReply(c, reply); err != nil {
 					log.Errorln("handle get ready reply error:", err)
 				}
 			case *pb.ReadyReply_CancelReady:
-				if err := handleCancelReadyReply(c, reply, wg); err != nil {
+				if err := handleCancelReadyReply(c, reply); err != nil {
 					log.Errorln("handle cancel ready reply error:", err)
 				}
 			case *pb.ReadyReply_PlayerJoin:
-				if err := handlePlayerJoinReply(c, reply, wg); err != nil {
+				if err := handlePlayerJoinReply(c, reply); err != nil {
 					log.Errorln("handle player join reply error:", err)
 				}
 			case *pb.ReadyReply_PlayerLeave:
-				if err := handlePlayerLeaveReply(c, reply, wg); err != nil {
+				if err := handlePlayerLeaveReply(c, reply); err != nil {
 					log.Errorln("handle player leave reply error:", err)
 				}
 			case *pb.ReadyReply_AddRobot:
-				if err := handleAddRobotReply(c, reply, wg); err != nil {
+				if err := handleAddRobotReply(c, reply); err != nil {
 					log.Errorln("handle add robot reply error:", err)
 				}
 			case *pb.ReadyReply_StartGame:
-				if err := handleStartGameReply(c, reply, wg); err != nil {
+				if err := handleStartGameReply(c, reply); err != nil {
 					log.Errorln("handle start game reply error:", err)
 				}
 				done <- errs.ErrGameStart
 				return // start game
 			case *pb.ReadyReply_Chat:
-				if err := handleChatReply(c, reply, wg); err != nil {
+				if err := handleChatReply(c, reply); err != nil {
 					log.Errorln("handle chat reply error:", err)
 				}
 			}
@@ -69,44 +68,41 @@ func StartReadyRecvStream(c *MahjongClient, wg *sync.WaitGroup) chan error {
 	return done
 }
 
-func handleRefreshRoomReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitGroup) error {
+func handleRefreshRoomReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	roomInfo := ToRoomInfo(reply.GetRefreshRoomReply())
 	return c.Room.Refresh(roomInfo)
 }
 
-func handleGetReadyReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitGroup) error {
+func handleGetReadyReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	seat := int(reply.GetGetReady().GetSeat())
 	if err := c.Room.SetReady(seat); err != nil {
 		return err
 	}
 	if seat == c.Player.Seat && c.Player.Name == reply.GetGetReady().GetPlayerName() {
-		wg.Done()
+
 	}
 	return nil
 }
 
-func handleCancelReadyReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitGroup) error {
+func handleCancelReadyReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	seat := int(reply.GetCancelReady().GetSeat())
 	if err := c.Room.SetUnReady(seat); err != nil {
 		return err
 	}
-	if seat == c.Player.Seat {
-		wg.Done()
-	}
+
 	return nil
 }
 
-func handlePlayerJoinReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitGroup) error {
+func handlePlayerJoinReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	name := reply.GetPlayerJoin().GetPlayerName()
 	seat := reply.GetPlayerJoin().GetSeat()
 	if name == c.Player.Name && int(seat) == c.Player.Seat {
-		wg.Done()
 		return nil
 	}
 	return c.Room.Join(player.NewPlayer(name), int(seat))
 }
 
-func handlePlayerLeaveReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitGroup) error {
+func handlePlayerLeaveReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	seat := int(reply.GetPlayerLeave().GetSeat())
 	name := reply.GetPlayerLeave().GetPlayerName()
 	ownerSeat := reply.GetPlayerLeave().GetOwnerSeat()
@@ -125,7 +121,7 @@ func handlePlayerLeaveReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.Wai
 				return
 			}
 		}()
-		wg.Done()
+
 		return nil
 	}
 	if err := c.Room.Leave(seat); err != nil {
@@ -135,29 +131,22 @@ func handlePlayerLeaveReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.Wai
 	return nil
 }
 
-func handleAddRobotReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitGroup) error {
+func handleAddRobotReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	seat := int(reply.GetAddRobot().GetRobotSeat())
 	robotType := reply.GetAddRobot().GetRobotType()
 	if err := c.Room.Join(player.NewRobot(robotType), seat); err != nil {
 		return err
 	}
-	if c.IsOwner() {
-		wg.Done()
-	}
 	return nil
 }
 
-func handleChatReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitGroup) error {
+func handleChatReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	//msg := reply.GetChat().GetMessage()
 	//log.Infoln(msg)
-	seat := int(reply.GetChat().GetSeat())
-	if seat == c.Player.Seat {
-		wg.Done()
-	}
 	return nil
 }
 
-func handleStartGameReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitGroup) error {
+func handleStartGameReply(c *MahjongClient, reply *pb.ReadyReply) error {
 	if err := c.ReadyStream.CloseSend(); err != nil {
 		log.Warnf("close ready stream error: %s", err)
 	}
@@ -167,7 +156,6 @@ func handleStartGameReply(c *MahjongClient, reply *pb.ReadyReply, wg *sync.WaitG
 			return
 		}
 	}()
-	wg.Done()
 	seatsOrder := reply.GetStartGame().GetSeatsOrder()
 	log.Infof("game start! order: %s, %s, %s, %s", c.Room.Players[int(seatsOrder[0])].Name, c.Room.Players[int(seatsOrder[1])].Name, c.Room.Players[int(seatsOrder[2])].Name, c.Room.Players[int(seatsOrder[3])].Name)
 	c.BoardState = mahjong.NewBoardState()

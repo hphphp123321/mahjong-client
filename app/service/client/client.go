@@ -317,9 +317,12 @@ func (c *MahjongClient) RefreshGame() error {
 	})
 }
 
-func (c *MahjongClient) SendAction(action *mahjong.Call) error {
+func (c *MahjongClient) SendGameAction(action *mahjong.Call) error {
 	if c.Room == nil || c.GameStream == nil {
 		return nil
+	}
+	if action.CallType == mahjong.Next {
+		c.BoardState = mahjong.NewBoardState()
 	}
 	return c.GameStream.Send(&pb.GameRequest{
 		Request: &pb.GameRequest_Action{

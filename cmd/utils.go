@@ -119,7 +119,7 @@ func RefreshGame(c *client.MahjongClient) {
 	for {
 		select {
 		case <-ticker.C:
-			if c.ReadyStream == nil {
+			if c.GameStream == nil {
 				return
 			}
 			err := c.RefreshGame()

@@ -8,7 +8,6 @@ import (
 	"github.com/hphphp123321/mahjong-go/mahjong"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"sync"
 )
 
 func logMenu() {
@@ -96,18 +95,13 @@ func roomMenu() {
 		}
 		Client.ReadyStream = readyStream
 		log.Debugln("start stream send")
-		wg := sync.WaitGroup{}
-		done := client.StartReadyRecvStream(Client, &wg)
+		done := client.StartReadyRecvStream(Client)
 		go RefreshRoom(Client)
-		for {
-			err = roomSelectSend(done, &wg)
-			if err == io.EOF || err == errs.ErrGameStart {
-				break
-			}
-			if err != nil {
-				log.Errorln(err)
-			}
+		err = roomSelectSend(done)
+		if err != io.EOF && err != errs.ErrGameStart {
+			log.Errorln(err)
 		}
+
 		Client.ReadyStream = nil
 		if err == errs.ErrGameStart {
 			gameMenu()
@@ -122,10 +116,10 @@ func gameMenu() {
 		return
 	}
 	Client.GameStream = gameStream
-	log.Debugln("start stream recv")
+	log.Debugln("start game stream recv")
 	actionChan := make(chan mahjong.Calls)
 	done := client.StartGameRecvStream(Client, actionChan)
-	go RefreshGame(Client)
+	//go RefreshGame(Client)
 	for {
 		err := gameSelectSend(done, actionChan)
 		if err == io.EOF {
