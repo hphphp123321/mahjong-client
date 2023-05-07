@@ -3,7 +3,6 @@ module github.com/hphphp123321/mahjong-client
 go 1.19
 
 require (
-	acln.ro/ioctl v0.10.0
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/hphphp123321/go-common v0.0.0-20230419113915-7ac9d9c533b6
 	github.com/hphphp123321/mahjong-go v0.0.0-20230501120011-8253224a40bc

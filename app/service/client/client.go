@@ -1,6 +1,5 @@
 package client
 
-import "C"
 import (
 	"context"
 	"github.com/hphphp123321/go-common"
