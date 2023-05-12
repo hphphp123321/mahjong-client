@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/hphphp123321/go-common v0.0.0-20230419113915-7ac9d9c533b6
-	github.com/hphphp123321/mahjong-go v0.0.0-20230501120011-8253224a40bc
+	github.com/hphphp123321/mahjong-go v0.0.0-20230512134639-123e55ce927c
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
 	google.golang.org/grpc v1.54.0
