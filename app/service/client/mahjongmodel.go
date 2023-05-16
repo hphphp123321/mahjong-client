@@ -215,8 +215,8 @@ func ToPbYakuSets(yakuSet mahjong.YakuSet) []*pb.YakuSet {
 
 func ToMahjongYakuSets(yakuSets []*pb.YakuSet) mahjong.YakuSet {
 	yakuSet := make(mahjong.YakuSet, len(yakuSets))
-	for _, yS := range yakuSets {
-		yakuSet[mahjong.Yaku(yS.Yaku)] = int(yS.Han)
+	for _, y := range yakuSets {
+		yakuSet[mahjong.Yaku(y.Yaku)] = int(y.Han)
 	}
 	return yakuSet
 }
@@ -304,6 +304,9 @@ func ToMahjongScoreResult(score *pb.ScoreResult) *mahjong.ScoreResult {
 }
 
 func ToPbResult(result *mahjong.Result) *pb.Result {
+	if result == nil {
+		return nil
+	}
 	return &pb.Result{
 		YakuResult:  ToPbYakuResult(result.YakuResult),
 		ScoreResult: ToPbScoreResult(result.ScoreResult),
@@ -311,8 +314,81 @@ func ToPbResult(result *mahjong.Result) *pb.Result {
 }
 
 func ToMahjongResult(result *pb.Result) *mahjong.Result {
+	if result == nil {
+		return nil
+	}
 	return &mahjong.Result{
 		YakuResult:  ToMahjongYakuResult(result.YakuResult),
 		ScoreResult: ToMahjongScoreResult(result.ScoreResult),
 	}
+}
+
+func ToPbTenpaiResult(result *mahjong.TenpaiResult) *pb.TenpaiResult {
+	if result == nil {
+		return nil
+	}
+	return &pb.TenpaiResult{
+		RemainNum: int32(result.RemainNum),
+		Result:    ToPbResult(result.Result),
+	}
+}
+
+func ToMahjongTenpaiResult(result *pb.TenpaiResult) *mahjong.TenpaiResult {
+	if result == nil {
+		return nil
+	}
+	return &mahjong.TenpaiResult{
+		RemainNum: int(result.RemainNum),
+		Result:    ToMahjongResult(result.Result),
+	}
+}
+
+func ToPbTenpaiInfo(info *mahjong.TenpaiInfo) *pb.TenpaiInfo {
+	if info == nil {
+		return nil
+	}
+	var tileClassesTenpaiResult = make(map[int32]*pb.TenpaiResult)
+	for tileClass, result := range info.TileClassesTenpaiResult {
+		tileClassesTenpaiResult[int32(ToPbTileClass(tileClass))] = ToPbTenpaiResult(result)
+	}
+	return &pb.TenpaiInfo{
+		TileClassesTenpaiResult: tileClassesTenpaiResult,
+		Furiten:                 info.Furiten,
+	}
+}
+
+func ToMahjongTenpaiInfo(info *pb.TenpaiInfo) *mahjong.TenpaiInfo {
+	if info == nil {
+		return nil
+	}
+	var tileClassesTenpaiResult = make(map[mahjong.TileClass]*mahjong.TenpaiResult)
+	for tileClass, result := range info.TileClassesTenpaiResult {
+		tileClassesTenpaiResult[ToMahjongTileClass(pb.TileClass(tileClass))] = ToMahjongTenpaiResult(result)
+	}
+	return &mahjong.TenpaiInfo{
+		TileClassesTenpaiResult: tileClassesTenpaiResult,
+		Furiten:                 info.Furiten,
+	}
+}
+
+func ToPbTenpaiInfos(infos mahjong.TenpaiInfos) map[int32]*pb.TenpaiInfo {
+	if infos == nil {
+		return nil
+	}
+	var m = make(map[int32]*pb.TenpaiInfo)
+	for tile, info := range infos {
+		m[int32(ToPbTile(tile))] = ToPbTenpaiInfo(info)
+	}
+	return m
+}
+
+func ToMahjongTenpaiInfos(infos map[int32]*pb.TenpaiInfo) mahjong.TenpaiInfos {
+	if infos == nil {
+		return nil
+	}
+	var m = make(mahjong.TenpaiInfos)
+	for tile, info := range infos {
+		m[ToMahjongTile(pb.Tile(tile))] = ToMahjongTenpaiInfo(info)
+	}
+	return m
 }
